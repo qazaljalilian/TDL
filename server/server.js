@@ -1,14 +1,22 @@
+
 var express = require('express');
 var bodyParser = require('body-parser');
-
+const { ObjectID } = require('mongodb');
 
 var { mongoose } = require('./db/mongoose');
 var { Todo } = require('./models/todo');
 var { User } = require('./models/user');
 
 var app = express();
-
+var allowCrossDomain = function (req, res, next) {
+    res.header('Access-Control-Allow-Origin', "*");
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+}
+app.use(allowCrossDomain);
 app.use(bodyParser.json());
+
 
 app.post('/todos', (req, res) => {
     var todo = new Todo({
@@ -21,14 +29,37 @@ app.post('/todos', (req, res) => {
         res.status(400).send(e);
     });
 });
-app.get('/todos', (req,res)=>{
-Todo.find().then((todos)=>{
-res.send({todos});
+app.get('/todos', (req, res) => {
+    Todo.find().then((todos) => {
+        res.send({ todos });
 
-},(e)=>{
-    res.status(400).send(e);
+    }, (e) => {
+        res.status(400).send(e);
+    });
 });
+
+
+
+app.delete('/todos/:id', (req, res) => {
+    var id = req.params.id;
+
+    if (!ObjectID.isValid(id)) {
+        return res.status(404).send();
+    }
+    Todo.findByIdAndRemove(id).then((todo) => {
+        if (!todo) {
+            return res.status(404).send();
+        }
+        res.send(todo);
+
+    }).catch((e) => {
+        res.status(400).send();
+    });
 });
+
+
+
+
 
 
 app.listen(3000, () => {
