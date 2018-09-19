@@ -18,6 +18,25 @@ export class AppComponent implements OnInit {
           this.todos = data.json().todos
         });
   }
+  delete(id){
+    this.httpService.deleteData(id)
+    .subscribe(
+      (data) => {
+        console.log(data.json());
+      });
+  }
+
+
+
+patch(id){
+  this.httpService.editData(id,this.text)
+    .subscribe(
+      (data) => {
+        console.log(data.json());
+      });
+}
+
+
   addToList() {
     this.httpService.postData(this.text)
       .subscribe(
