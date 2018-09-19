@@ -1,0 +1,6 @@
+<input [(ngModel)]="text" type="text">
+<button (click)="addToList()">add to list</button>
+<button (click)="fetchList()">fetch my todo list</button>
+<div *ngFor="let todo of todos">
+    {{ todo.text }}
+</div>
