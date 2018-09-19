@@ -18,21 +18,22 @@ export class AppComponent implements OnInit {
           this.todos = data.json().todos
         });
   }
-  delete(id){
+  delete(id,i){
     this.httpService.deleteData(id)
     .subscribe(
       (data) => {
-        console.log(data.json());
+        this.todos.splice(i,1);
       });
   }
 
 
 
-patch(id){
+patch(id,i){
   this.httpService.editData(id,this.text)
     .subscribe(
       (data) => {
         console.log(data.json());
+        this.todos[i]=data.json().todo;
       });
 }
 

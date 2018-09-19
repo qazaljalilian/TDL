@@ -3,9 +3,9 @@
 <button (click)="fetchList()">fetch my todo list</button>
 
 
-<div *ngFor="let todo of todos">
-    <button (click)="delete(todo._id)">delete</button>
-    <button (click)="patch(todo._id)">edit</button>
+<div *ngFor="let todo of todos ; let i = index">
+    <button (click)="delete(todo._id,i)">delete</button>
+    <button (click)="patch(todo._id,i)">edit</button>
 
     {{ todo.text }}
 </div>
