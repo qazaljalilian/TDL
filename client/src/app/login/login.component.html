@@ -1,1 +1,7 @@
-<button routerLink="/" >go to home page</button>
+<label>username</label>
+<input [(ngModel)]="username" type="text" >
+<label>password</label>
+<input [(ngModel)]="password" type="text">
+
+<button (click)="login()" >login</button>
+<button (click)="register()"> or register</button>

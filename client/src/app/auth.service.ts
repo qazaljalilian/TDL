@@ -1,7 +1,6 @@
-import { promise } from "selenium-webdriver";
 
 export class AuthService{
-    loggedIn= true;
+    loggedIn= false;
 
 isAuthenticate(){
     const promise= new Promise(
