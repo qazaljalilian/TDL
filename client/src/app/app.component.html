@@ -1,11 +1,1 @@
-<input [(ngModel)]="text" type="text">
-<button (click)="addToList()">add to list</button>
-<button (click)="fetchList()">fetch my todo list</button>
-
-
-<div *ngFor="let todo of todos ; let i = index">
-    <button (click)="delete(todo._id,i)">delete</button>
-    <button (click)="patch(todo._id,i)">edit</button>
-
-    {{ todo.text }}
-</div>
+<router-outlet></router-outlet>
