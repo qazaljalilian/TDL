@@ -42,9 +42,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     secret: 'heyyoustopthere',
-    cookie: {
-        maxAge: 60000
-    }
+    
 }));
 app.use((req, res, next) => {
     if (req.cookies.user_sid && !req.session.user) {

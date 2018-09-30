@@ -1,23 +1,22 @@
+import { HttpService } from "./http.service";
+import { Injectable } from "@angular/core";
 
-export class AuthService{
-    loggedIn= false;
+@Injectable()
+export class AuthService {
+    loggedIn = false;
 
-isAuthenticate(){
-    const promise= new Promise(
-        (resolve,reject)=>{
-            setTimeout(() => {
-                resolve(this.loggedIn);
-            }, 800);
-        });
-        return promise;
-}
+    constructor(private httpService: HttpService) { }
 
-
-    login (){
-        this.loggedIn=true;
+    isAuthenticate() {
+        return this.httpService.isLogin()
     }
-    logout(){
-        this.loggedIn= false;
+
+
+    login() {
+        this.loggedIn = true;
+    }
+    logout() {
+        this.loggedIn = false;
     }
 
 

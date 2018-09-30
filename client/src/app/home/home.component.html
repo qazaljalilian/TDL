@@ -1,11 +1,15 @@
-<input [(ngModel)]="text" type="text">
-<button (click)="addToList()">add to list</button>
-<button (click)="fetchList()">fetch my todo list</button>
+<div class="container" style="margin:150px">
+  <input class="form-control" [(ngModel)]="text" type="text">
+  <hr>
+  <button type="button" class="btn btn-success" (click)="addToList()">add to list</button>
+  <button type="button" class="btn btn-secondary" (click)="fetchList()">fetch my todo list</button>
 
-
-<div *ngFor="let todo of todos ; let i = index">
-    <button (click)="delete(todo._id,i)">delete</button>
-    <button (click)="patch(todo._id,i)">edit</button>
-
+  <hr>
+  <div *ngFor="let todo of todos ; let i = index" style="margin:20px">
+    <button type="button" class="btn btn-danger" (click)="delete(todo._id,i)">delete</button>
+    <button type="button" class="btn btn-warning" (click)="patch(todo._id,i)">edit</button>
     {{ todo.text }}
+
+
+  </div>
 </div>
