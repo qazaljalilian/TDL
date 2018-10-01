@@ -1,14 +1,19 @@
 const _ = require('lodash');
 const express = require('express');
 const bodyParser = require('body-parser');
+const session = require('express-session');
+const morgan = require('morgan');
+const passport = require('passport');
+const bcrypt = require('bcryptjs');
+var RedisStore = require('connect-redis')(session);
+
+
+
+
+
 const {
     ObjectID
 } = require('mongodb');
-const session = require('express-session');
-const morgan = require('morgan');
-const cookieParser = require('cookie-parser');
-
-
 const {
     mongoose
 } = require('./db/mongoose');
@@ -18,182 +23,250 @@ const {
 const {
     User
 } = require('./models/user');
-var {
-    authenticate
-} = require('./middleware/authenticate');
+
+
 
 
 var app = express();
 
+
 var allowCrossDomain = function (req, res, next) {
     res.header('Access-Control-Allow-Origin', 'http://localhost:4200');
-    res.header('Access-Control-Allow-Credentials',true);
+    res.header('Access-Control-Allow-Credentials', true);
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
     next();
 }
+
 app.use(morgan('dev'));
 app.use(allowCrossDomain);
 app.use(bodyParser.json());
-app.use(cookieParser());
 
 app.use(session({
-    key: 'user_sid',
+    store: new RedisStore({
+        host: '127.0.0.1',
+        port: 6379
+    }),
+    secret: 'hey you',
     resave: false,
     saveUninitialized: false,
-    secret: 'heyyoustopthere',
-    
+    key: 'user_sid',
 }));
-app.use((req, res, next) => {
-    if (req.cookies.user_sid && !req.session.user) {
-        res.clearCookie('user_sid');
-    }
-    next();
+
+app.use(passport.initialize());
+app.use(passport.session());
+passport.serializeUser(function (user, cb) {
+    cb(null, user.id);
+});
+
+passport.deserializeUser(function (id, cb) {
+    User.findById(id, function (err, user) {
+        cb(err, user);
+    });
 });
 
 
+const LocalStrategy = require('passport-local').Strategy;
 
+passport.use(new LocalStrategy({
+        usernameField: 'email',
+    },
+    function (username, password, done) {
+        User.findOne({
+            email: username
+        }, function (err, user) {
+            if (err) {
+                return done(err);
+            }
 
-////////////////////////////////////////////////////////
-app.post('/todos', authenticate, (req, res) => {
-    var todo = new Todo({
-        text: req.body.text,
-        _creator: req.user._id
-    });
-    todo.save().then((doc) => {
-        res.send(doc);
-    }, (e) => {
-        res.status(400).send(e);
-    });
+            if (!user) {
+                return done(null, false);
+            }
+
+            bcrypt.compare(password, user.password, (err, res) => {
+                if (res) {
+                    return done(null, user);
+                } else {
+                    return done(null, false);
+                }
+            });
+        });
+    }
+));
+
+app.get('/tester', (req, res) => {
+    res.send();
+})
+
+///////////////////////////////////////////////////////
+app.post('/todos', (req, res) => {
+    if (req.isAuthenticated()) {
+        var todo = new Todo({
+            text: req.body.text,
+            _creator: req.user._id
+        });
+        todo.save().then((doc) => {
+            res.send(doc);
+        }, (e) => {
+            res.status(400).send(e);
+        });
+    } else {
+        res.status(401).send();
+    }
+
 });
 /////////////////////////////////////////////////////////
-app.get('/todos', authenticate, (req, res) => {
-    Todo.find({
-        _creator: req.user._id
-    }).then((todos) => {
-        res.send({
-            todos
-        });
+app.get('/todos', (req, res) => {
+    if (req.isAuthenticated()) {
+        Todo.find({
+            _creator: req.user._id
+        }).then((todos) => {
+            res.send({
+                todos
+            });
 
-    }, (e) => {
-        res.status(400).send(e);
-    });
+        }, (e) => {
+            res.status(400).send(e);
+        });
+    } else {
+        res.status(401).send();
+    }
+
 });
 ////////////////////////////////////////////////////////////
-app.get('/todos/:id', authenticate, (req, res) => {
-    var id = req.params.id;
-    if (!ObjectID.isValid(id)) {
-        return res.status(404).send();
-    }
-    Todo.findOne({
-        _id: id,
-        _creator: req.user._id
-    }).then((todo) => {
-        if (!todo) {
+app.get('/todos/:id', (req, res) => {
+    if (req.isAuthenticated()) {
+        var id = req.params.id;
+        if (!ObjectID.isValid(id)) {
             return res.status(404).send();
         }
-        res.send({
-            todo
+        Todo.findOne({
+            _id: id,
+            _creator: req.user._id
+        }).then((todo) => {
+            if (!todo) {
+                return res.status(404).send();
+            }
+            res.send({
+                todo
+            });
         });
-    });
+    } else {
+        res.status(401).send();
+    }
+
+
 });
 ////////////////////////////////////////////////////////////
-app.delete('/todos/:id', authenticate, (req, res) => {
-    var id = req.params.id;
+app.delete('/todos/:id', (req, res) => {
+    if (req.isAuthenticated()) {
+        var id = req.params.id;
 
-    if (!ObjectID.isValid(id)) {
-        return res.status(404).send();
-    }
-    Todo.findOneAndRemove({
-        _id: id,
-        _creator: req.user._id
-    }).then((todo) => {
-        if (!todo) {
+        if (!ObjectID.isValid(id)) {
             return res.status(404).send();
         }
-        res.send(todo);
-    }).catch((e) => {
-        res.status(400).send();
-    });
+        Todo.findOneAndRemove({
+            _id: id,
+            _creator: req.user._id
+        }).then((todo) => {
+            if (!todo) {
+                return res.status(404).send();
+            }
+            res.send(todo);
+        }).catch((e) => {
+            res.status(400).send();
+        });
+    } else {
+        res.status(401).send();
+    }
+
 });
 //////////////////////////////////////////////////////////////
-app.patch('/todos/:id', authenticate, (req, res) => {
-    var id = req.params.id;
-    var body = _.pick(req.body, ['text']);
-    if (!ObjectID.isValid(id)) {
-        return res.status(404).send();
-    }
-    Todo.findOneAndUpdate({
-        _id: id,
-        _creator: req.user._id
-    }, {
-        $set: body
-    }, {
-        new: true
-    }).then((todo) => {
-        if (!todo) {
+app.patch('/todos/:id', (req, res) => {
+    if (req.isAuthenticated()) {
+        var id = req.params.id;
+        var body = _.pick(req.body, ['text']);
+        if (!ObjectID.isValid(id)) {
             return res.status(404).send();
         }
-        res.send({
-            todo
+        Todo.findOneAndUpdate({
+            _id: id,
+            _creator: req.user._id
+        }, {
+            $set: body
+        }, {
+            new: true
+        }).then((todo) => {
+            if (!todo) {
+                return res.status(404).send();
+            }
+            res.send({
+                todo
+            });
+        }).catch((e) => {
+            res.status(400).send();
         });
-    }).catch((e) => {
-        res.status(400).send();
-    });
+
+
+
+    } else {
+        res.status(401).send();
+    }
+
 });
-////////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////////
 app.post('/users', (req, res) => {
     var body = _.pick(req.body, ['email', 'password']);
     var user = new User(body);
 
     user.save().then(() => {
-        req.session.user = user._id;
-        return user.generateAuthToken();
-    }).then((token) => {
-        res.header('x-auth', token).send(user);
-    }).catch((e) => {
-        res.status(400).send(e);
-    });
-});
-///////////////////////////////////////////////////////////////
-app.get('/users/me', authenticate, (req, res) => {
-    res.send(req.user);
-});
-///////////////////////////////////////////////////////////////
-app.post('/users/login', (req, res) => {
-    var body = _.pick(req.body, ['email', 'password']);
-    User.findByCredentials(body.email, body.password).then((user) => {
-        req.session.user = user._id;
-        return user.generateAuthToken().then((token) => {
-            res.header('x-auth', token).send(user);
+        passport.authenticate('local')(req, res, function () {
+            res.send();
         });
     }).catch((e) => {
         res.status(400).send(e);
     });
 });
+///////////////////////////////////////////////////////////////
+app.get('/users/me', (req, res) => {
+    if (req.isAuthenticated()) {
+        res.send(req.user)
+
+    } else {
+        res.status(401).send();
+    }
+});
+///////////////////////////////////////////////////////////////
+app.post('/users/login', passport.authenticate('local'), (req, res) => {
+    res.send();
+});
 //////////////////////////////////////////////////////////////
-app.delete('/users/me/token', authenticate, (req, res) => {
-    req.user.removeToken(req.token).then(() => {
-        res.status(200).send()
-    }, () => {
-        res.status(400).send();
-    });
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.send();
 });
 ////////////////////////////////////////////////////////////
 
 
-///////////////////////////////////////////////////////////////
-// app.get('/test',sessionChecker, function (req, res, next) {
-//     res.send('hello');
 
-// });
-// app.get('/testlog',function(req,res){
-//     req.session.user = '12345qazal'
-//   res.send();
-// })
+
+app.post('/teste', passport.authenticate('local'),
+    function (req, res) {
+        res.send('ok');
+    });
+
+
+app.post('/testee', function (req, res) {
+    if (req.isAuthenticated()) {
+        res.send(req.user)
+    } else {
+        res.status(401).send();
+    }
+});
+
 ///////////////////////////////////////////////////////////
 app.listen(3000, () => {
-    console.log('hi dear qazal im up');
+    console.log('Hi dear Qazal I\'m up');
 });
 
 module.exports = {

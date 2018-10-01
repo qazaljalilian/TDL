@@ -27,4 +27,7 @@ export class HttpService {
   isLogin() {
     return this.http.get('http://localhost:3000/users/me', { withCredentials: true });
   }
+  logout(){
+    return this.http.get('http://localhost:3000/logout', { withCredentials: true });
+  }
 }

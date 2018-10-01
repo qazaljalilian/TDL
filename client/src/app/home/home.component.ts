@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpService } from '../http.service';
+import { AuthService } from '../auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-home',
@@ -9,7 +11,7 @@ import { HttpService } from '../http.service';
 export class HomeComponent implements OnInit {
   text: string;
   todos: [any];
-  constructor(private httpService: HttpService) { }
+  constructor(private httpService: HttpService,private authService: AuthService,private router: Router) { }
 
   ngOnInit() {
     this.httpService.getData()
@@ -54,5 +56,14 @@ patch(id,i){
           this.todos = data.json().todos
         });
   }
+  logout(){
+    this.httpService.logout()
+    .subscribe(()=>{
+      this.authService.logout();
+      this.router.navigate(['/login']);
+
+    })
+  }
+  
 }
 
